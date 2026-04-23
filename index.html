@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All File to PDF Converter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📄 All File to PDF Converter</h1>
+            <p class="subtitle">Convert your files to PDF format easily</p>
+        </header>
+
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-animation">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <h2>Upload Files</h2>
+                    <p class="upload-text">Drag and drop files or click to browse</p>
+                    <p class="upload-subtext">Upload unlimited files at once</p>
+                    <p class="supported-formats">Supported: Images (JPG, PNG, GIF, BMP, WebP), Documents (DOC, DOCX, PDF, TXT, RTF, ODT), Spreadsheets (XLS, XLSX, CSV, ODS), Presentations (PPT, PPTX)</p>
+                    <p class="upload-note">If you select multiple images/documents/spreadsheets/presentations together, they will be merged into one PDF output.</p>
+                    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.doc,.docx,.pdf,.txt,.rtf,.odt,.xls,.xlsx,.csv,.ods,.ppt,.pptx" multiple hidden>
+                </div>
+            </section>
+
+            <!-- Files Queue Section -->
+            <section class="files-queue-section" id="filesQueueSection" style="display: none;">
+                <div class="queue-header">
+                    <h3>📁 Files Ready to Convert (<span id="queueCount">0</span>)</h3>
+                    <button class="btn-clear-queue" id="clearQueueBtn" title="Clear all files">Clear All</button>
+                </div>
+                <div class="queue-instructions">
+                    <small>💡 Drag files to arrange order • Click to select files in order • Remove with ✕</small>
+                </div>
+                <div class="files-queue" id="filesQueue"></div>
+                <div class="queue-actions">
+                    <button class="btn btn-secondary" id="addMoreFilesBtn">Add More Files</button>
+                    <button class="btn btn-primary" id="convertAllBtn">
+                        <span class="btn-icon">⚙️</span>
+                        Convert All to PDF
+                    </button>
+                </div>
+            </section>
+
+            <!-- File Info Section -->
+            <section class="file-info-section" id="fileInfoSection" style="display: none;">
+                <div class="file-card">
+                    <div class="file-header">
+                        <span class="file-icon" id="fileIcon">📄</span>
+                        <div class="file-details">
+                            <h3 id="fileName">File name</h3>
+                            <p id="fileSize">0 KB</p>
+                        </div>
+                        <button class="btn-remove-file" id="removeFileBtn" title="Remove this file">✕</button>
+                    </div>
+
+                    <!-- Conversion Options -->
+                    <div class="conversion-options" id="conversionOptions"></div>
+
+                    <!-- Preview Section -->
+                    <div class="preview-section" id="previewSection"></div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" id="changeFileBtn">Change File</button>
+                        <button class="btn btn-primary" id="convertBtn">
+                            <span class="btn-icon">⚙️</span>
+                            Convert to PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="progress-section" id="progressSection" style="display: none;">
+                <div class="progress-card">
+                    <h3 id="progressTitle">Converting...</h3>
+                    <div class="progress-item" id="currentProgressItem"></div>
+                    <div class="progress-list" id="progressList"></div>
+                    <p id="progressText">0%</p>
+                </div>
+            </section>
+
+            <!-- Success Section -->
+            <section class="success-section" id="successSection" style="display: none;">
+                <div class="success-card">
+                    <div class="success-icon">✓</div>
+                    <h3>Conversion Complete!</h3>
+                    <p id="successMessage">Your PDFs are ready to download</p>
+                    <div class="success-files-list" id="successFilesList"></div>
+                    <div class="success-buttons">
+                        <button class="btn btn-success" id="downloadAllBtn">
+                            <span class="btn-icon">⬇️</span>
+                            Download All
+                        </button>
+                        <button class="btn btn-primary" id="mergePdfsBtn" style="display: none;">
+                            <span class="btn-icon">📎</span>
+                            Merge All PDFs
+                        </button>
+                        <button class="btn btn-secondary" id="convertAnotherBtn">Convert More</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Section -->
+            <section class="error-section" id="errorSection" style="display: none;">
+                <div class="error-card">
+                    <div class="error-icon">✕</div>
+                    <h3>Conversion Failed</h3>
+                    <p id="errorMessage">An error occurred during conversion</p>
+                    <button class="btn btn-secondary" id="errorRetryBtn">Try Again</button>
+                </div>
+            </section>
+        </main>
+
+      
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.4.21/dist/mammoth.browser.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

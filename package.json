@@ -1,0 +1,27 @@
+{
+  "name": "file-to-pdf-converter",
+  "version": "1.0.0",
+  "description": "A modern, responsive web application for converting various file formats to PDF",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8000 -c-1",
+    "dev": "live-server --port=8000",
+    "serve": "python -m http.server 8000"
+  },
+  "keywords": [
+    "pdf",
+    "converter",
+    "file-conversion",
+    "images",
+    "documents",
+    "spreadsheets",
+    "docx",
+    "xlsx"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "live-server": "^1.2.2"
+  }
+}
