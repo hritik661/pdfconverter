@@ -9,17 +9,64 @@ const state = {
     selectedFiles: [],
     paymentVerified: false,
     currentOrderId: null,
+    currentPlanId: null,
+    currentPlanDescription: null,
     razorpayKey: null,
 };
 
-// Payment state
+const DAY_MS = 24 * 60 * 60 * 1000;
+const PLAN_CONFIG = {
+    basic: {
+        id: 'basic',
+        amount: 200,
+        name: 'Basic Access',
+        description: 'Basic Access - 7 days',
+        accessDays: 7,
+        maxDownloads: 10,
+        paymentLink: 'https://rzp.io/rzp/aj0zZTs'
+    },
+    premium: {
+        id: 'premium',
+        amount: 600,
+        name: 'Premium',
+        description: 'Premium - 6 months',
+        accessDays: 180,
+        maxDownloads: 30,
+        paymentLink: 'https://rzp.io/rzp/n3QJJ4c'
+    },
+    ultra: {
+        id: 'ultra',
+        amount: 1200,
+        name: 'Ultra Premium',
+        description: 'Ultra Premium - 1 year',
+        accessDays: 365,
+        maxDownloads: 100,
+        paymentLink: 'https://rzp.io/rzp/0C835C11'
+    },
+    professional: {
+        id: 'professional',
+        amount: 2000,
+        name: 'Professional',
+        description: 'Professional - Unlimited access',
+        accessDays: 3650,
+        maxDownloads: null,
+        paymentLink: 'https://rzp.io/rzp/7psFWGg'
+    }
+};
+
 const paymentState = {
     isPaid: localStorage.getItem('pdfConverterPaid') === 'true',
     paymentExpiry: localStorage.getItem('pdfConverterPaidExpiry'),
+    planId: localStorage.getItem('pdfConverterPlanId'),
+    planDescription: localStorage.getItem('pdfConverterPlan'),
+    downloadsUsed: parseInt(localStorage.getItem('pdfConverterDownloadsUsed') || '0', 10) || 0,
+    paymentId: localStorage.getItem('pdfConverterPaymentId') || null,
 };
 
-// API Base URL (adjust if needed)
-const API_BASE = 'http://localhost:3000';
+const API_BASE =
+    window.location.origin && window.location.origin.startsWith('http')
+        ? window.location.origin
+        : 'http://localhost:3000';
 
 // DOM refs
 const uploadArea = document.getElementById('uploadArea');
@@ -51,6 +98,143 @@ const paymentModalOverlay = document.getElementById('paymentModalOverlay');
 const paymentModalClose = document.getElementById('paymentModalClose');
 
 // ============ PAYMENT FUNCTIONS ============
+function getAllPlans() {
+    return Object.values(PLAN_CONFIG);
+}
+
+function resolvePlanConfig({ planId, amount, description } = {}) {
+    if (planId && PLAN_CONFIG[planId]) {
+        return PLAN_CONFIG[planId];
+    }
+
+    const matchedByAmount = getAllPlans().find((plan) => plan.amount === Number(amount));
+    if (matchedByAmount) {
+        return matchedByAmount;
+    }
+
+    const normalizedDescription = String(description || '').toLowerCase();
+    return (
+        getAllPlans().find(
+            (plan) =>
+                normalizedDescription.includes(plan.name.toLowerCase()) ||
+                normalizedDescription.includes(plan.description.toLowerCase())
+        ) || null
+    );
+}
+
+function persistPaymentAccess(plan, paymentMeta = {}) {
+    if (!plan) return;
+
+    const expiryTime = Date.now() + plan.accessDays * DAY_MS;
+    paymentState.isPaid = true;
+    paymentState.planId = plan.id;
+    paymentState.planDescription = plan.description;
+    paymentState.paymentExpiry = String(expiryTime);
+    paymentState.downloadsUsed = 0;
+    paymentState.paymentId = paymentMeta.paymentId || null;
+
+    localStorage.setItem('pdfConverterPaid', 'true');
+    localStorage.setItem('pdfConverterPaidExpiry', String(expiryTime));
+    localStorage.setItem('pdfConverterPlanId', plan.id);
+    localStorage.setItem('pdfConverterPlan', plan.description);
+    localStorage.setItem('pdfConverterDownloadsUsed', '0');
+
+    if (paymentMeta.paymentId) {
+        localStorage.setItem('pdfConverterPaymentId', paymentMeta.paymentId);
+    }
+}
+
+function getCurrentAccess() {
+    if (!paymentState.isPaid) {
+        return {
+            valid: false,
+            reason: 'Complete payment to unlock PDF downloads.'
+        };
+    }
+
+    const plan = resolvePlanConfig({
+        planId: paymentState.planId,
+        description: paymentState.planDescription
+    });
+
+    if (!plan) {
+        clearPayment();
+        return {
+            valid: false,
+            reason: 'Your payment plan could not be matched. Please pay again.'
+        };
+    }
+
+    const expiry = Number(paymentState.paymentExpiry);
+    if (!Number.isFinite(expiry) || Date.now() >= expiry) {
+        clearPayment();
+        return {
+            valid: false,
+            reason: `Your ${plan.name} access has expired. Please renew to continue downloading.`
+        };
+    }
+
+    const remainingDownloads =
+        plan.maxDownloads == null
+            ? Infinity
+            : Math.max(plan.maxDownloads - paymentState.downloadsUsed, 0);
+
+    if (remainingDownloads <= 0) {
+        return {
+            valid: false,
+            plan,
+            remainingDownloads,
+            reason: `Your ${plan.name} download limit is finished. Please upgrade to continue.`
+        };
+    }
+
+    return {
+        valid: true,
+        plan,
+        remainingDownloads
+    };
+}
+
+function isPaymentValid(requiredDownloads = 1) {
+    const access = getCurrentAccess();
+    if (!access.valid) {
+        return false;
+    }
+
+    if (
+        access.remainingDownloads !== Infinity &&
+        access.remainingDownloads < requiredDownloads
+    ) {
+        return false;
+    }
+
+    return true;
+}
+
+function consumeDownloadCredit(count = 1) {
+    const access = getCurrentAccess();
+
+    if (!access.valid) {
+        return false;
+    }
+
+    if (access.plan.maxDownloads == null) {
+        return true;
+    }
+
+    if (access.remainingDownloads < count) {
+        return false;
+    }
+
+    paymentState.downloadsUsed += count;
+    localStorage.setItem(
+        'pdfConverterDownloadsUsed',
+        String(paymentState.downloadsUsed)
+    );
+
+    return true;
+}
+
 async function initRazorpay() {
     try {
         const response = await fetch(`${API_BASE}/api/razorpay-key`, {
@@ -60,28 +244,32 @@ async function initRazorpay() {
         
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
+        if (!data.keyId) {
+            throw new Error(data.error || 'Razorpay key not available');
+        }
         state.razorpayKey = data.keyId;
+        console.log('Razorpay initialized');
         console.log('✓ Razorpay initialized:', state.razorpayKey);
     } catch (error) {
         console.warn('⚠ Backend unavailable, using fallback Razorpay key:', error.message);
         // Fallback to test key
-        state.razorpayKey = 'rzp_test_SMlPVMR00yQZTp';
+        state.razorpayKey = null;
+        console.warn('Unable to initialize Razorpay:', error.message);
     }
 }
 
-function showPaymentModal() {
+function showPaymentModal(reason) {
     paymentModal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+
+    if (reason) {
+        showNotification(reason, 'warning');
+    }
 }
 
 function hidePaymentModal() {
     paymentModal.style.display = 'none';
     document.body.style.overflow = '';
-}
-
-// Client-side order creation (fallback if backend unavailable)
-function createClientOrderId() {
-    return `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 async function initiatePayment(amount, description) {
@@ -308,6 +496,190 @@ function showNotification(message, type = 'info') {
         notification.style.animation = 'slideOutRight 0.3s ease-out';
         setTimeout(() => notification.remove(), 300);
     }, 3500);
+}
+
+async function initRazorpay() {
+    try {
+        const response = await fetch(`${API_BASE}/api/razorpay-key`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.keyId) {
+            throw new Error(data.error || `HTTP ${response.status}`);
+        }
+
+        state.razorpayKey = data.keyId;
+        console.log('Razorpay initialized');
+    } catch (error) {
+        state.razorpayKey = null;
+        console.warn('Unable to initialize Razorpay:', error.message);
+    }
+}
+
+async function initiatePayment(amount, description) {
+    const plan = resolvePlanConfig({ amount, description });
+
+    if (!plan) {
+        showNotification('Selected plan is invalid. Please try again.', 'error');
+        return;
+    }
+
+    try {
+        if (!state.razorpayKey) {
+            await initRazorpay();
+        }
+
+        if (!state.razorpayKey) {
+            throw new Error('Payment server is unavailable. Please start the backend and try again.');
+        }
+
+        loadingOverlay.style.display = 'flex';
+
+        const orderResponse = await fetch(`${API_BASE}/api/create-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: plan.amount,
+                description: plan.description,
+                planId: plan.id,
+                userEmail: 'user@example.com',
+                userName: 'PDF Converter User'
+            })
+        });
+
+        const orderData = await orderResponse.json();
+        if (!orderResponse.ok || !orderData.orderId) {
+            throw new Error(orderData.error || `Unable to create Razorpay order (${orderResponse.status})`);
+        }
+
+        state.currentOrderId = orderData.orderId;
+        state.currentPlanId = plan.id;
+        state.currentPlanDescription = plan.description;
+
+        const options = {
+            key: state.razorpayKey,
+            amount: orderData.amount,
+            currency: orderData.currency,
+            name: 'PDF Converter',
+            description: plan.description,
+            order_id: orderData.orderId,
+            handler: async (response) => {
+                await handlePaymentSuccess(response);
+            },
+            notes: {
+                planId: plan.id,
+                planName: plan.name,
+                description: plan.description
+            },
+            theme: {
+                color: '#6366f1'
+            },
+            modal: {
+                ondismiss: handlePaymentCancel
+            }
+        };
+
+        if (!window.Razorpay) {
+            throw new Error('Razorpay script not loaded');
+        }
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+        loadingOverlay.style.display = 'none';
+    } catch (error) {
+        console.error('Payment initiation error:', error);
+        loadingOverlay.style.display = 'none';
+        showError(`Payment error: ${error.message}`);
+        showNotification('Unable to start payment. Please try again.', 'error');
+    }
+}
+
+async function handlePaymentSuccess(response) {
+    try {
+        loadingOverlay.style.display = 'flex';
+
+        const verifyResponse = await fetch(`${API_BASE}/api/verify-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+            })
+        });
+
+        const verifyData = await verifyResponse.json();
+        if (!verifyResponse.ok || !verifyData.success) {
+            throw new Error(verifyData.error || 'Payment verification failed');
+        }
+
+        const plan = resolvePlanConfig({
+            planId: verifyData.plan?.id || state.currentPlanId,
+            amount: verifyData.plan?.amount,
+            description: verifyData.plan?.description || state.currentPlanDescription
+        });
+
+        if (!plan) {
+            throw new Error('Payment was received but the access plan could not be identified.');
+        }
+
+        state.paymentVerified = true;
+        persistPaymentAccess(plan, {
+            paymentId: response.razorpay_payment_id,
+            orderId: response.razorpay_order_id
+        });
+
+        hidePaymentModal();
+        loadingOverlay.style.display = 'none';
+
+        const downloadMessage =
+            plan.maxDownloads == null
+                ? `${plan.name} activated. You can now download your files without a limit.`
+                : `${plan.name} activated. You can now download up to ${plan.maxDownloads} PDFs during this access period.`;
+
+        showNotification(downloadMessage, 'success');
+    } catch (error) {
+        console.error('Payment processing error:', error);
+        loadingOverlay.style.display = 'none';
+        showError('Payment processing failed: ' + error.message);
+        showNotification('Please try again', 'error');
+    }
+}
+
+function isPaymentValid(requiredDownloads = 1) {
+    const access = getCurrentAccess();
+    if (!access.valid) {
+        return false;
+    }
+
+    if (
+        access.remainingDownloads !== Infinity &&
+        access.remainingDownloads < requiredDownloads
+    ) {
+        return false;
+    }
+
+    return true;
+}
+
+function clearPayment() {
+    paymentState.isPaid = false;
+    paymentState.paymentExpiry = null;
+    paymentState.planId = null;
+    paymentState.planDescription = null;
+    paymentState.downloadsUsed = 0;
+    paymentState.paymentId = null;
+
+    localStorage.removeItem('pdfConverterPaid');
+    localStorage.removeItem('pdfConverterPaidExpiry');
+    localStorage.removeItem('pdfConverterPlanId');
+    localStorage.removeItem('pdfConverterPlan');
+    localStorage.removeItem('pdfConverterDownloadsUsed');
+    localStorage.removeItem('pdfConverterPaymentId');
+
+    state.paymentVerified = false;
 }
 
 // Payment modal event listeners
@@ -1100,9 +1472,9 @@ async function convertAllFiles() {
 
 // ---------- Downloads ----------
 function downloadSingle(idx) {
-    // Check if payment is valid
-    if (!isPaymentValid()) {
-        showPaymentModal();
+    const access = getCurrentAccess();
+    if (!access.valid) {
+        showPaymentModal(access.reason);
         return;
     }
 
@@ -1111,6 +1483,12 @@ function downloadSingle(idx) {
     const custom = prompt('Enter PDF filename (without .pdf):', def);
     if (custom === null) return;
     const fname = custom.trim() ? custom.trim() + '.pdf' : item.name;
+
+    if (!consumeDownloadCredit(1)) {
+        showPaymentModal(`Your ${access.plan.name} plan does not have any downloads left.`);
+        return;
+    }
+
     if (item.pdf) {
         item.pdf.save(fname);
     } else if (item.data) {
@@ -1123,13 +1501,32 @@ function downloadSingle(idx) {
     }
 }
 downloadAllBtn.addEventListener('click', () => {
-    // Check if payment is valid
-    if (!isPaymentValid()) {
-        showPaymentModal();
+    const access = getCurrentAccess();
+    if (!access.valid) {
+        showPaymentModal(access.reason);
         return;
     }
-    
-    state.convertedPDFs.forEach((_, idx) => setTimeout(() => downloadSingle(idx), idx * 500));
+
+    const allowedCount =
+        access.remainingDownloads === Infinity
+            ? state.convertedPDFs.length
+            : Math.min(state.convertedPDFs.length, access.remainingDownloads);
+
+    if (allowedCount <= 0) {
+        showPaymentModal(`Your ${access.plan.name} plan does not have any downloads left.`);
+        return;
+    }
+
+    if (allowedCount < state.convertedPDFs.length) {
+        showNotification(
+            `Your ${access.plan.name} plan has ${access.remainingDownloads} download(s) remaining. Only the first ${allowedCount} file(s) will download now.`,
+            'warning'
+        );
+    }
+
+    state.convertedPDFs
+        .slice(0, allowedCount)
+        .forEach((_, idx) => setTimeout(() => downloadSingle(idx), idx * 500));
 });
 convertAllBtn.addEventListener('click', convertAllFiles);
 convertAnotherBtn.addEventListener('click', resetAll);
