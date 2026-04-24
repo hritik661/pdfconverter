@@ -1792,12 +1792,12 @@ body {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
-    .theme-toggle { top: 76px; right: 12px; width: 30px; height: 30px; font-size: 0.9rem; }
+    .theme-toggle { position: fixed; top: 12px; right: 12px; width: 40px; height: 40px; font-size: 1rem; z-index: 1001; }
     .nav-container { max-width: 100%; padding: 0 16px; height: auto; min-height: 68px; display: flex; flex-wrap: wrap; align-items: center; }
     .nav-brand { flex: 1; min-width: 200px; }
     .nav-menu { display: none !important; visibility: hidden; }
     .nav-actions { display: none !important; visibility: hidden; }
-    .nav-mobile-toggle { display: flex !important; order: 2; }
+    .nav-mobile-toggle { display: flex !important; order: 2; z-index: 1000; }
     .nav-menu.active { 
         display: flex !important;
         visibility: visible; 
