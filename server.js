@@ -233,20 +233,17 @@ module.exports = app;
 
 // For local development
 if (require.main === module) {
+    // Port 3000 is used by v0 port-proxy, so use 3001 locally
     const PORT = process.env.PORT || 3001;
-    const server = app.listen(PORT, () => {
+    
+    const server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 PDF Converter server running on http://localhost:${PORT}`);
         console.log(`✓ Razorpay integration enabled`);
         console.log(`✓ Webhook endpoint: http://localhost:${PORT}/api/webhook`);
     });
-    
+
     server.on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-            console.log(`Port ${PORT} is in use, trying ${PORT + 1}`);
-            const PORT2 = PORT + 1;
-            app.listen(PORT2, () => {
-                console.log(`🚀 PDF Converter server running on http://localhost:${PORT2}`);
-            });
-        }
+        console.error('Server error:', err.message);
+        process.exit(1);
     });
 }
