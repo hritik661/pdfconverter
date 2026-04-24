@@ -233,7 +233,7 @@ module.exports = app;
 
 // For local development
 if (require.main === module) {
-    // Port 3000 is used by v0 port-proxy, so use 3001 locally
+    // Use port 3001 for local development
     const PORT = process.env.PORT || 3001;
     
     const server = app.listen(PORT, '0.0.0.0', () => {
