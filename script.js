@@ -128,6 +128,7 @@ async function initiatePayment(amount, description) {
         }
 
         state.currentOrderId = orderData.orderId;
+        state.currentPlanDescription = description;
 
         // Razorpay payment options
         const options = {
@@ -140,6 +141,10 @@ async function initiatePayment(amount, description) {
             handler: async (response) => {
                 await handlePaymentSuccess(response);
             },
+            notes: {
+                plan: description,
+                description: description
+            },
             prefill: {
                 email: 'user@example.com',
                 contact: '9999999999'
@@ -149,9 +154,6 @@ async function initiatePayment(amount, description) {
             },
             modal: {
                 ondismiss: handlePaymentCancel
-            },
-            notes: {
-                description: description
             }
         };
 
@@ -170,6 +172,27 @@ async function initiatePayment(amount, description) {
         showError(`Payment error: ${error.message}`);
         showNotification('Please ensure Razorpay script is loaded and try again', 'error');
     }
+}
+
+function getPaymentExpiry(description) {
+    const now = Date.now();
+    const lower = (description || '').toLowerCase();
+    if (lower.includes('7 days') || lower.includes('7 day')) {
+        return now + 7 * 24 * 60 * 60 * 1000;
+    }
+    if (lower.includes('6 months') || lower.includes('6 month')) {
+        return now + 6 * 30 * 24 * 60 * 60 * 1000;
+    }
+    if (lower.includes('1 month') || lower.includes('monthly')) {
+        return now + 30 * 24 * 60 * 60 * 1000;
+    }
+    if (lower.includes('1 year') || lower.includes('year')) {
+        return now + 365 * 24 * 60 * 60 * 1000;
+    }
+    if (lower.includes('unlimited')) {
+        return now + 3650 * 24 * 60 * 60 * 1000; // 10 years for unlimited access
+    }
+    return now + 30 * 24 * 60 * 60 * 1000;
 }
 
 async function handlePaymentSuccess(response) {
@@ -211,10 +234,10 @@ async function handlePaymentSuccess(response) {
         state.paymentVerified = true;
         paymentState.isPaid = true;
         
-        // Set expiry time (24 hours for premium, 1 hour for basic)
-        const expiryTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+        const expiryTime = getPaymentExpiry(state.currentPlanDescription);
         localStorage.setItem('pdfConverterPaid', 'true');
         localStorage.setItem('pdfConverterPaidExpiry', expiryTime);
+        localStorage.setItem('pdfConverterPlan', state.currentPlanDescription || 'Paid Access');
         
         hidePaymentModal();
         loadingOverlay.style.display = 'none';

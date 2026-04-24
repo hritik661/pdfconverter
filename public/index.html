@@ -297,29 +297,97 @@
             <div class="payment-modal-content">
                 <button class="payment-modal-close" id="paymentModalClose">✕</button>
                 <div class="payment-modal-header">
-                    <h3>Complete Your Payment</h3>
-                    <p>Unlock downloads with a secure payment</p>
+                    <span class="payment-header-badge">Secure Checkout</span>
+                    <h3>Choose the Right Access Plan</h3>
+                    <p>Unlock PDF downloads with polished one-time plans built for quick tasks, longer projects, and unlimited professional use.</p>
                 </div>
                 <div class="payment-modal-body">
-                    <div class="payment-option" id="paymentOption1" data-amount="99">
-                        <div class="payment-option-header">
-                            <h4>Basic Download</h4>
-                            <span class="payment-price">₹99</span>
+                    <div class="payment-plan-grid">
+                        <div class="payment-option" data-amount="200">
+                            <div class="payment-option-top">
+                                <div class="payment-plan-copy">
+                                    <span class="payment-tier">Starter</span>
+                                    <h4>Basic Access</h4>
+                                </div>
+                                <div class="payment-price-wrap">
+                                    <span class="payment-price-prefix">One-time</span>
+                                    <span class="payment-price">&#8377;200</span>
+                                </div>
+                            </div>
+                            <p class="payment-option-desc">A simple short-term unlock for quick conversions and small personal tasks.</p>
+                            <ul class="payment-feature-list">
+                                <li>7 days of access</li>
+                                <li>Up to 10 PDF downloads</li>
+                                <li>Best for one-time use</li>
+                            </ul>
+                            <button class="payment-btn" onclick="initiatePayment(200, 'Basic Access - 7 days')">
+                                Choose Basic
+                            </button>
                         </div>
-                        <p class="payment-option-desc">Download up to 10 PDFs</p>
-                        <button class="payment-btn" onclick="initiatePayment(99, 'Basic Download - 10 PDFs')">
-                            Pay with Razorpay
-                        </button>
-                    </div>
-                    <div class="payment-option" id="paymentOption2" data-amount="199">
-                        <div class="payment-option-header">
-                            <h4>Premium Download</h4>
-                            <span class="payment-price">₹199</span>
+                        <div class="payment-option" data-amount="600">
+                            <div class="payment-option-top">
+                                <div class="payment-plan-copy">
+                                    <span class="payment-tier">Popular</span>
+                                    <h4>Premium</h4>
+                                </div>
+                                <div class="payment-price-wrap">
+                                    <span class="payment-price-prefix">One-time</span>
+                                    <span class="payment-price">&#8377;600</span>
+                                </div>
+                            </div>
+                            <p class="payment-option-desc">A balanced plan for repeat use when you need premium access for a longer stretch.</p>
+                            <ul class="payment-feature-list">
+                                <li>6 months premium access</li>
+                                <li>Up to 30 PDF</li>
+                                <li>Great value for frequent users</li>
+                            </ul>
+                            <button class="payment-btn" onclick="initiatePayment(600, 'Premium - 6 months')">
+                                Upgrade to Premium
+                            </button>
                         </div>
-                        <p class="payment-option-desc">Unlimited downloads for 24 hours</p>
-                        <button class="payment-btn" onclick="initiatePayment(199, 'Premium Download - 24 hours')">
-                            Pay with Razorpay
-                        </button>
+                        <div class="payment-option" data-amount="1200">
+                            <div class="payment-option-top">
+                                <div class="payment-plan-copy">
+                                    <span class="payment-tier">Extended</span>
+                                    <h4>Ultra Premium</h4>
+                                </div>
+                                <div class="payment-price-wrap">
+                                    <span class="payment-price-prefix">One-time</span>
+                                    <span class="payment-price">&#8377;1200</span>
+                                </div>
+                            </div>
+                            <p class="payment-option-desc">A long-term option for power users who want dependable access throughout the year.</p>
+                            <ul class="payment-feature-list">
+                                <li>1 year premium access</li>
+                                <li>Up to 100 PDF</li>
+                                <li>Less renewal hassle</li>
+                            </ul>
+                            <button class="payment-btn" onclick="initiatePayment(1200, 'Ultra Premium - 1 year')">
+                                Choose Ultra
+                            </button>
+                        </div>
+                        <div class="payment-option highlight" data-amount="2000">
+                            <div class="payment-option-top">
+                                <div class="payment-plan-copy">
+                                    <span class="payment-tier">Unlimited</span>
+                                    <h4>Professional</h4>
+                                </div>
+                                <div class="payment-price-wrap">
+                                    <span class="payment-price-prefix">One-time</span>
+                                    <span class="payment-price">&#8377;2000</span>
+                                </div>
+                            </div>
+                            <span class="plan-pill">Best value</span>
+                            <p class="payment-option-desc">Unlimited downloads with no expiry, built for serious daily work and a smoother professional workflow.</p>
+                            <ul class="payment-feature-list">
+                                <li>Unlimited PDF downloads</li>
+                                <li>No expiry on access</li>
+                                <li>Best for heavy ongoing usage</li>
+                            </ul>
+                            <button class="payment-btn" onclick="initiatePayment(2000, 'Professional - Unlimited access')">
+                                Upgrade to Professional
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="payment-security-info">
