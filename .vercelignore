@@ -1,0 +1,17 @@
+# Files to ignore during Vercel deployment
+.git/
+.gitignore
+node_modules/
+*.log
+.env.local
+.env.development
+.env.test
+DEBUG.html
+START_SERVER.bat
+START_SERVER.ps1
+SETUP_GUIDE.md
+TROUBLESHOOTING.md
+FIXES_APPLIED.md
+RAZORPAY_INTEGRATION.md
+README.md
+.vercel

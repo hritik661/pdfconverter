@@ -1,11 +1,14 @@
 {
   "name": "file-to-pdf-converter",
   "version": "1.0.0",
-  "description": "A modern, responsive web application for converting various file formats to PDF",
-  "main": "index.html",
+  "description": "A modern, responsive web application for converting various file formats to PDF with Razorpay payment integration",
+  "main": "server.js",
   "scripts": {
-    "start": "http-server -p 8000 -c-1",
-    "dev": "live-server --port=8000",
+    "start": "node server.js",
+    "server": "node server.js",
+    "dev": "nodemon server.js",
+    "client": "http-server -p 8000 -c-1",
+    "dev-client": "live-server --port=8000",
     "serve": "python -m http.server 8000"
   },
   "keywords": [
@@ -16,12 +19,21 @@
     "documents",
     "spreadsheets",
     "docx",
-    "xlsx"
+    "xlsx",
+    "razorpay",
+    "payment"
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "razorpay": "^2.9.1"
+  },
   "devDependencies": {
     "http-server": "^14.1.1",
-    "live-server": "^1.2.2"
+    "live-server": "^1.2.2",
+    "nodemon": "^2.0.20"
   }
 }
