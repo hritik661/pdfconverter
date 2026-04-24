@@ -212,10 +212,12 @@ app.get('/health', (req, res) => {
 
 // Fallback for any other route: serve index.html
 app.get('*', (req, res) => {
-    if (path.extname(req.path)) {
-        return res.status(404).send('Not found');
-    }
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'), (err) => {
+        if (err) {
+            console.error('Error serving index.html:', err);
+            res.status(500).send('Could not load page');
+        }
+    });
 });
 
 // Error handling middleware
@@ -231,10 +233,20 @@ module.exports = app;
 
 // For local development
 if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
+    const PORT = process.env.PORT || 3001;
+    const server = app.listen(PORT, () => {
         console.log(`🚀 PDF Converter server running on http://localhost:${PORT}`);
         console.log(`✓ Razorpay integration enabled`);
         console.log(`✓ Webhook endpoint: http://localhost:${PORT}/api/webhook`);
+    });
+    
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.log(`Port ${PORT} is in use, trying ${PORT + 1}`);
+            const PORT2 = PORT + 1;
+            app.listen(PORT2, () => {
+                console.log(`🚀 PDF Converter server running on http://localhost:${PORT2}`);
+            });
+        }
     });
 }
